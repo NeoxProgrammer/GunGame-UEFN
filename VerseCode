@@ -1,0 +1,74 @@
+
+using { /Fortnite.com/Devices }
+using { /Verse.org/Simulation }
+using { /UnrealEngine.com/Temporary/Diagnostics }
+using{/Fortnite.com/Teams}
+using{/Fortnite.com/Game}
+using{/Fortnite.com/Characters}
+
+
+# See https://dev.epicgames.com/documentation/en-us/uefn/create-your-own-device-in-verse for how to create a verse device.
+
+# A Verse-authored creative device that can be placed in a level
+Game_Manager := class(creative_device):
+
+    var PlayerMap: [player] int = map{}
+    @editable var WeaponGranters : [] item_granter_device = array{}
+    @editable var Sentries : []sentry_device = array{}
+    @editable EndGameDevice : end_game_device = end_game_device{}
+    @editable xpGranter : accolades_device = accolades_device{}
+    # constant or variable
+
+
+    # Runs when the device is started in a running game
+    OnBegin<override>()<suspends>:void=
+        # TODO: Replace this with your code
+        InitPlayers()
+        FaizanPrint()
+
+
+
+    InitPlayers() : void= 
+        AllPlayers := GetPlayspace().GetPlayers()  
+        for(Player : AllPlayers, FortCharacter := Player.GetFortCharacter[]):
+            if(set PlayerMap[Player] = 0,WeaponTier := PlayerMap[Player]):
+                FortCharacter.EliminatedEvent().Subscribe(OnPlayerEliminated)
+                Print("Storing Player")
+                GrantWeapon(Player,WeaponTier)
+
+    GrantWeapon(Player : player, WeaponTier: int): void=
+        Print("Attempting to grant weapon")
+        if(ItemGranter := WeaponGranters[WeaponTier]):
+            Print("Granted item to player")
+            ItemGranter.GrantItem(Player)
+    
+    OnPlayerEliminated(Result : elimination_result): void=
+        Eliminator := Result.EliminatingCharacter
+        if(FortCharacter := Eliminator?, EliminatingAgent := FortCharacter.GetAgent[]):
+            Print("we need to promote a player")
+            
+        
+    PromotePlayer(Agent: agent) : void= 
+        var WeaponTier: int = 0
+        if(Player := player[Agent],PlayerWeaponTier := PlayerMap[Player]):
+            set WeaponTier = PlayerWeaponTier + 1
+        
+        if(Player := player[Agent], set PlayerMap[Player] = WeaponTier):
+            GrantWeapon(Player,WeaponTier)
+
+
+
+
+    
+   
+    FaizanPrint():void= 
+        Print("Faizan")
+        Print("Faizan is TOPGGG")
+        Print("Faizan is in the hood life is good faizan is the G making money")
+        
+            
+
+
+
+
+    
