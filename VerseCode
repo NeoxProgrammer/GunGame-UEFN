@@ -16,14 +16,19 @@ Game_Manager := class(creative_device):
     @editable var WeaponGranters : [] item_granter_device = array{}
     @editable var Sentries : []sentry_device = array{}
     @editable EndGameDevice : end_game_device = end_game_device{}
-    @editable xpGranter : accolades_device = accolades_device{}
+    
+    var elimsToEndGame :int = 0; 
+    
     # constant or variable
 
 
     # Runs when the device is started in a running game
     OnBegin<override>()<suspends>:void=
         # TODO: Replace this with your code
+        
+        set elimsToEndGame = WeaponGranters.Length; 
         InitPlayers()
+        InitTestMode()
         FaizanPrint()
 
 
@@ -52,13 +57,26 @@ Game_Manager := class(creative_device):
         var WeaponTier: int = 0
         if(Player := player[Agent],PlayerWeaponTier := PlayerMap[Player]):
             set WeaponTier = PlayerWeaponTier + 1
+            CheckEndGame(Agent,WeaponTier)
         
         if(Player := player[Agent], set PlayerMap[Player] = WeaponTier):
             GrantWeapon(Player,WeaponTier)
 
+    InitTestMode() : void= 
+        for(Sentry: Sentries):
+            Sentry.EliminatedEvent.Subscribe(TestPlayerElimination)
+    
+    
+
+    TestPlayerElimination(Agent:?agent):void= 
+        Print("sentry eliminated")
+        if(Player := Agent?):
+            PromotePlayer(Player)
 
 
-
+    CheckEndGame(Player : agent,WeaponTier:int): void=
+        if(WeaponTier >= elimsToEndGame):
+            EndGameDevice.Activate(Player)
     
    
     FaizanPrint():void= 
@@ -72,3 +90,4 @@ Game_Manager := class(creative_device):
 
 
     
+
