@@ -1,0 +1,24 @@
+using { /Fortnite.com/Devices }
+using { /Verse.org/Simulation }
+using { /UnrealEngine.com/Temporary/Diagnostics }
+using { /Verse.org/Simulation/Tags }
+Coins := class(tag){}
+
+awardxpcoins := class(creative_device):
+
+  # add accolade device when you build verse code
+    @editable
+    XpAccolade : accolades_device = accolades_device{} 
+
+    OnBegin<override>()<suspends>:void=
+        TaggedActors := GetCreativeObjectsWithTag(Coins{})
+        for (TaggedActor : TaggedActors):
+            if (Collectible := collectible_object_device[TaggedActor]):
+                Collectible.CollectedEvent.Subscribe(AwardXp)
+
+    AwardXp(Agent:agent):void=
+        XpAccolade.Award(Agent)
+        XpAccolade.TestAwardEvent.Subscribe(TestAccolade);
+
+    TestAccolade(Agent: agent): void =
+        Print("Agent received accolade!");
