@@ -1,88 +1,103 @@
 
+
 using { /Fortnite.com/Devices }
 using { /Verse.org/Simulation }
+using { /Fortnite.com/Teams }
+using { /Fortnite.com/Game }
+using { /Fortnite.com/Characters }
 using { /UnrealEngine.com/Temporary/Diagnostics }
-using{/Fortnite.com/Teams}
-using{/Fortnite.com/Game}
-using{/Fortnite.com/Characters}
-
 
 # See https://dev.epicgames.com/documentation/en-us/uefn/create-your-own-device-in-verse for how to create a verse device.
 
 # A Verse-authored creative device that can be placed in a level
-Game_Manager := class(creative_device):
+nba := class(creative_device):
+# Map data structure that stores players as the key
+    # and current WeaponTier as the value
+    var PlayerMap : [player]int = map{}
 
-    var PlayerMap: [player] int = map{}
-    @editable var WeaponGranters : [] item_granter_device = array{}
-    @editable var Sentries : []sentry_device = array{}
-    @editable EndGameDevice : end_game_device = end_game_device{}
-    
-    var elimsToEndGame :int = 0; 
-    
-    # constant or variable
+    # Item granters stored in an array so we can give the player
+    # new weapons
+    @editable
+    var WeaponGranters : []item_granter_device = array{}
 
+    # Array of bots for beating up and testing
+    @editable
+    var Sentries : []sentry_device = array{}
 
+    # This is how we end the game later
+    @editable
+    EndGameDevice : end_game_device = end_game_device{}
+
+    # Needed to let the game know when to end
+    var ElimsToEndGame : int = 0
+    var newelims :int = 0
     # Runs when the device is started in a running game
     OnBegin<override>()<suspends>:void=
-        # TODO: Replace this with your code
-        
-        set elimsToEndGame = WeaponGranters.Length; 
+        set ElimsToEndGame = WeaponGranters.Length;
         InitPlayers()
         InitTestMode()
-        FaizanPrint()
+        GetPlayspace().PlayerAddedEvent().Subscribe(OnPlayerAdded)
 
+        set newelims = WeaponGranters.Length
+        Print("amount of weapons to end the game is" )
 
-
-    InitPlayers() : void= 
-        AllPlayers := GetPlayspace().GetPlayers()  
-        for(Player : AllPlayers, FortCharacter := Player.GetFortCharacter[]):
-            if(set PlayerMap[Player] = 0,WeaponTier := PlayerMap[Player]):
+    InitPlayers() : void=
+        AllPlayers := GetPlayspace().GetPlayers()
+        for (Player : AllPlayers, FortCharacter := Player.GetFortCharacter[]):
+            if (set PlayerMap[Player] = 0, WeaponTier := PlayerMap[Player]):
                 FortCharacter.EliminatedEvent().Subscribe(OnPlayerEliminated)
-                Print("Storing Player")
-                GrantWeapon(Player,WeaponTier)
+                GrantWeapon(Player, WeaponTier)
 
-    GrantWeapon(Player : player, WeaponTier: int): void=
+    GrantWeapon(Player : player, WeaponTier: int) : void=
         Print("Attempting to grant weapon")
-        if(ItemGranter := WeaponGranters[WeaponTier]):
+        if (ItemGranter := WeaponGranters[WeaponTier]):
             Print("Granted item to player")
             ItemGranter.GrantItem(Player)
-    
-    OnPlayerEliminated(Result : elimination_result): void=
-        Eliminator := Result.EliminatingCharacter
-        if(FortCharacter := Eliminator?, EliminatingAgent := FortCharacter.GetAgent[]):
-            Print("we need to promote a player")
-            
-        
-    PromotePlayer(Agent: agent) : void= 
-        var WeaponTier: int = 0
-        if(Player := player[Agent],PlayerWeaponTier := PlayerMap[Player]):
-            set WeaponTier = PlayerWeaponTier + 1
-            CheckEndGame(Agent,WeaponTier)
-        
-        if(Player := player[Agent], set PlayerMap[Player] = WeaponTier):
-            GrantWeapon(Player,WeaponTier)
+            Print("Trying to grant weapon we have granted")
 
-    InitTestMode() : void= 
-        for(Sentry: Sentries):
+    OnPlayerEliminated(Result : elimination_result) : void=
+        Eliminator := Result.EliminatingCharacter
+        if (FortCharacter := Eliminator?, EliminatingAgent := FortCharacter.GetAgent[]):
+            Print("We need to promote player")
+            PromotePlayer(EliminatingAgent)
+
+    PromotePlayer(Agent : agent) : void=
+        var WeaponTier : int = 0
+        if (Player := player[Agent], PlayerWeaponTier := PlayerMap[Player]):
+            set WeaponTier = PlayerWeaponTier + 1
+            CheckEndGame(Agent, WeaponTier)
+            
+        if (Player := player[Agent], set PlayerMap[Player] = WeaponTier):
+            GrantWeapon(Player, WeaponTier)
+
+    
+    InitTestMode() : void=
+        for (Sentry : Sentries):
             Sentry.EliminatedEvent.Subscribe(TestPlayerElimination)
     
-    
-
-    TestPlayerElimination(Agent:?agent):void= 
-        Print("sentry eliminated")
-        if(Player := Agent?):
+    TestPlayerElimination(Agent : ?agent) : void=
+        Print("Sentry eliminated!")
+        if (Player := Agent?):
             PromotePlayer(Player)
 
 
-    CheckEndGame(Player : agent,WeaponTier:int): void=
-        if(WeaponTier >= elimsToEndGame):
+    CheckEndGame(Player : agent, WeaponTier : int) : void=
+        if (WeaponTier >= ElimsToEndGame):
             EndGameDevice.Activate(Player)
     
-   
-    FaizanPrint():void= 
-        Print("Faizan")
-        Print("Faizan is TOPGGG")
-        Print("Faizan is in the hood life is good faizan is the G making money")
+    OnPlayerAdded(InPlayer : player) : void =
+        Print("A New Player Joined!")
+        if:
+            Team := GetPlayspace().GetTeamCollection().GetTeam[InPlayer]
+            FortCharacter := InPlayer.GetFortCharacter[]
+            set PlayerMap[InPlayer] = 0
+            
+        then:
+            GrantWeapon(InPlayer, 0)
+            Print("Set new player weapon tier to 0 in the TeamMap")
+            FortCharacter.EliminatedEvent().Subscribe(OnPlayerEliminated) # subscribe to this player's elimination event
+            
+       
         
             
 
